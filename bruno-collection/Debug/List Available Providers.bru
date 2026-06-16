@@ -1,0 +1,31 @@
+meta {
+  name: List Available Providers
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/debug/providers
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{copilotToken}}
+}
+
+docs {
+  List all available LLM providers and their configuration status.
+  
+  Returns provider details including:
+  - name: provider identifier (e.g. "copilot", "antigravity")
+  - configured: whether the provider has valid credentials
+  - models: list of models available for this provider
+  - status: current provider health/availability
+  
+  Useful for verifying which providers are properly configured
+  and available for use with /api/run requests.
+  
+  Authentication: Bearer token required.
+  NOTE: This is a debug/development endpoint.
+}

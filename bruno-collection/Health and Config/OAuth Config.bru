@@ -1,0 +1,16 @@
+meta {
+  name: OAuth Config
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/oauth/config
+  body: none
+  auth: none
+}
+
+docs {
+  Check if GitHub OAuth is configured on the server.
+  Returns {"available": true/false}.
+}

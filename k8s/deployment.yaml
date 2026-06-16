@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: harness-playground
+  namespace: agent
+  labels:
+    app: harness-playground
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: harness-playground
+  template:
+    metadata:
+      labels:
+        app: harness-playground
+    spec:
+      containers:
+        - name: harness-playground
+          image: registry.example.com/test/harness-playground:1.0.4
+          imagePullPolicy: IfNotPresent
+          command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
+          ports:
+            - containerPort: 8080
+              name: http
+          resources:
+            limits:
+              cpu: 500m
+              memory: 2Gi
+            requests:
+              cpu: 200m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          env:
+            # ── Base path for ingress sub-path routing ────────────────────
+            - name: BASE_PATH
+              value: "/agents/harness-playground/"
+            # ── Copilot CLI ───────────────────────────────────────────────
+            # COPILOT_GITHUB_TOKEN is intentionally omitted: users provide it
+            # via the web UI (Bring Your Own PAT).
+            - name: COPILOT_MODEL
+              value: "claude-sonnet-4.6"
+            - name: COPILOT_ALLOW_ALL
+              value: "true"
+            - name: COPILOT_SKILLS_DIRS
+              value: "/app/app/skills"
+            - name: COPILOT_AUTO_UPDATE
+              value: "false"
+            # ── GitHub OAuth ──────────────────────────────────────────────
+            - name: GITHUB_OAUTH_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: harness-playground-credentials
+                  key: github-oauth-client-id
+            - name: GITHUB_OAUTH_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: harness-playground-credentials
+                  key: github-oauth-client-secret
+            - name: GITHUB_OAUTH_REDIRECT_URI
+              value: "https://harness-playground.example.com/api/oauth/callback"
+            # ── GitHub CLI (gh) ───────────────────────────────────────────
+            - name: GH_TOKEN_CLI
+              valueFrom:
+                secretKeyRef:
+                  name: harness-playground-credentials
+                  key: gh-token-cli
+                  optional: true
+            - name: GH_CLI_HOSTNAME
+              value: "github.com"
+            - name: GH_NO_UPDATE_NOTIFIER
+              value: "1"
+            - name: GH_PROMPT_DISABLED
+              value: "1"
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      serviceAccount: agent-sa
+      serviceAccountName: agent-sa

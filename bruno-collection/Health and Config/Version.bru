@@ -1,0 +1,18 @@
+meta {
+  name: Version
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/version
+  body: none
+  auth: none
+}
+
+docs {
+  Returns SDK and CLI version info.
+  - sdk.installed: "rust-backend"
+  - cli.installed: Copilot CLI version string
+  - cli.path: resolved path
+}

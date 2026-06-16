@@ -1,0 +1,30 @@
+meta {
+  name: Validate Antigravity API Key
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/auth/antigravity/validate
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "api_key": "{{geminiApiKey}}"
+  }
+}
+
+docs {
+  Validate an Antigravity (Gemini) API key.
+  
+  Body fields:
+  - api_key: the Antigravity/Gemini API key to validate
+  
+  The server verifies the key against the Antigravity provider.
+  Returns validation result on success, or error if the key is invalid.
+  
+  The geminiApiKey variable is auto-populated from the GEMINI_API_KEY
+  environment variable via the collection pre-request script.
+}

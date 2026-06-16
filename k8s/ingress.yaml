@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: harness-playground-ing
+  namespace: agent
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/enable-rewrite-log: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: ingress-nginx
+  tls:
+    - hosts:
+        - harness-playground.example.com
+      secretName: harness-playground-tls
+  rules:
+    - host: harness-playground.example.com
+      http:
+        paths:
+          - path: /agents/harness-playground(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: harness-playground
+                port:
+                  number: 80

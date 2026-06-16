@@ -1,0 +1,282 @@
+<!-- ═══════════════════════════════════════════════════════════════════════
+     OUTPUT PANEL — Rendered/Raw views, Thinking steps, Follow-up Q&A
+══════════════════════════════════════════════════════════════════════════ -->
+
+<div x-show="outputVisible"
+     x-transition:enter="transition ease-out duration-300"
+     x-transition:enter-start="opacity-0 translate-y-4"
+     x-transition:enter-end="opacity-100 translate-y-0"
+     class="output-panel glass-card rounded-xl border border-surface-600 overflow-hidden">
+
+  <!-- Panel header -->
+  <div class="flex items-center justify-between px-5 py-3 border-b border-surface-700 bg-surface-800/60">
+    <div class="flex items-center gap-3 min-w-0">
+      <span class="text-sm font-medium text-slate-200 truncate" x-text="outputTitle"></span>
+      <!-- Active tool calls — stay visible until tool_end -->
+      <template x-if="activeToolCalls.length > 0">
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <template x-for="tool in activeToolCalls" :key="tool.id">
+            <div class="flex items-center gap-1 text-xs text-slate-300 bg-surface-900/40 border border-surface-600/40 rounded px-2 py-0.5">
+              <span class="spinner w-2.5 h-2.5 flex-shrink-0"></span>
+              <span x-text="tool.name"></span>
+            </div>
+          </template>
+        </div>
+      </template>
+    </div>
+    <div class="flex items-center gap-1 flex-shrink-0">
+      <button @click="outputView = 'rendered'"
+              class="tab-btn text-xs px-2.5 py-1"
+              :class="outputView === 'rendered' ? 'tab-active' : 'tab-inactive'">Rendered</button>
+      <button @click="outputView = 'raw'"
+              class="tab-btn text-xs px-2.5 py-1"
+              :class="outputView === 'raw' ? 'tab-active' : 'tab-inactive'">Raw</button>
+      <button @click="copyOutput()"
+              class="p-1.5 rounded hover:bg-surface-600 text-slate-400 hover:text-slate-200 transition-colors" title="Copy to clipboard">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/>
+        </svg>
+      </button>
+      <button @click="closeOutput()"
+              class="p-1.5 rounded hover:bg-surface-600 text-slate-400 hover:text-slate-200 transition-colors" title="Close">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Thinking panel (collapsible) — shows assistant messages -->
+  <div x-show="thinkingSteps.length > 0" class="border-b border-surface-700 bg-surface-900/40">
+    <button @click="thinkingOpen = !thinkingOpen"
+            class="w-full flex items-center justify-between px-5 py-2.5 text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-surface-800/40 transition-colors">
+      <span class="flex items-center gap-2">
+        <span>💬</span><span>Assistant Messages</span>
+        <span class="text-slate-600" x-text="(function(){ var n = thinkingSteps.filter(s => !s.toolName && !s.toolActive && !s.toolDone && !s.separator).length; return '(' + n + ' message' + (n === 1 ? '' : 's') + ')'; }())"></span>
+      </span>
+      <svg class="w-4 h-4 transition-transform" :class="thinkingOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+      </svg>
+    </button>
+    <div x-show="thinkingOpen" x-collapse class="px-5 pb-3 max-h-48 overflow-y-auto">
+      <template x-for="(step, i) in thinkingSteps" :key="i">
+        <div>
+          <div x-show="step.separator" class="py-2 mt-1 mb-0.5 border-t border-cyan-800/40">
+            <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-300">💬 Follow-up:</span>
+            <span class="text-[10px] text-slate-400 ml-1" x-text="step.content.substring(0, 80) + (step.content.length > 80 ? '…' : '')"></span>
+          </div>
+          <div x-show="!step.separator" class="py-1.5 text-xs border-b border-surface-800 last:border-0 flex items-start gap-1.5">
+            <span x-show="step.toolName && step.toolActive" class="spinner w-3 h-3 flex-shrink-0 mt-0.5"></span>
+            <span x-show="step.toolName && step.toolDone" class="text-green-500 flex-shrink-0 mt-0.5 text-[10px]">✓</span>
+            <span x-show="!step.toolName" class="text-slate-600 font-mono flex-shrink-0"
+                  x-text="(thinkingSteps.slice(0, i+1).filter(s => !s.toolName && !s.toolActive && !s.toolDone && !s.separator).length) + '.'"></span>
+            <span :class="step.toolActive ? 'text-slate-200 font-medium' : step.toolDone ? 'text-slate-400' : 'text-slate-500'"
+                  x-text="step.content.substring(0, 300) + (step.content.length > 300 ? '…' : '')"></span>
+          </div>
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <!-- Model Reasoning panel (collapsible) — shows extended thinking from Claude etc. -->
+  <div x-show="reasoningContent" class="border-b border-surface-700 bg-violet-950/20">
+    <button @click="reasoningOpen = !reasoningOpen"
+            class="w-full flex items-center justify-between px-5 py-2.5 text-xs font-medium text-violet-400 hover:text-violet-200 hover:bg-violet-900/20 transition-colors">
+      <span class="flex items-center gap-2">
+        <span>🧠</span><span>Model Reasoning</span>
+        <span class="text-violet-700">— extended thinking</span>
+      </span>
+      <svg class="w-4 h-4 transition-transform" :class="reasoningOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+      </svg>
+    </button>
+    <div x-show="reasoningOpen" x-collapse class="px-5 pb-4 max-h-64 overflow-y-auto">
+      <div class="text-xs text-violet-300/70 whitespace-pre-wrap font-mono leading-relaxed border-l-2 border-violet-800/50 pl-3 mt-1"
+           x-text="reasoningContent"></div>
+    </div>
+  </div>
+
+  <!-- Result area -->
+  <div class="relative">
+    <div x-show="outputView === 'rendered'"
+         class="prose-output px-6 py-5 max-h-[55vh] overflow-y-auto"
+         x-ref="renderedOutput" x-html="renderedMarkdown"></div>
+    <pre x-show="outputView === 'raw'" x-ref="rawOutput"
+         class="raw-output px-6 py-5 max-h-[55vh] overflow-y-auto text-xs text-slate-300 whitespace-pre-wrap font-mono"
+         x-text="rawContent"></pre>
+  </div>
+
+  <!-- Follow-up Q&A section -->
+  <div x-show="currentSessionId" class="border-t border-surface-700 bg-surface-900/60">
+    <div x-show="chatHistory.length > 0"
+         class="max-h-64 overflow-y-auto px-5 py-3 space-y-3" x-ref="chatHistory">
+      <template x-for="(msg, i) in chatHistory" :key="i">
+        <div :class="msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'">
+          <div :class="msg.role === 'user'
+                ? 'bg-brand-600/60 border border-brand-700/40 text-white rounded-2xl rounded-tr-sm'
+                : 'bg-surface-800 border border-surface-600 text-slate-200 rounded-2xl rounded-tl-sm'"
+               class="max-w-[85%] px-4 py-2.5 text-sm">
+            <template x-if="msg.role === 'assistant'">
+              <div class="prose-compact" x-html="parseMarkdown(msg.content)"></div>
+            </template>
+            <template x-if="msg.role === 'user'">
+              <span x-text="msg.content"></span>
+            </template>
+          </div>
+        </div>
+      </template>
+      <div x-show="followupLoading" class="flex justify-start">
+        <div class="bg-surface-800 border border-surface-600 rounded-2xl rounded-tl-sm px-4 py-2.5">
+          <template x-if="activeToolCalls.length > 0">
+            <div class="flex flex-wrap gap-1">
+              <template x-for="tool in activeToolCalls" :key="tool.id">
+                <div class="flex items-center gap-1 text-xs text-slate-300">
+                  <span class="spinner w-3 h-3"></span>
+                  <span x-text="tool.name"></span>
+                </div>
+              </template>
+            </div>
+          </template>
+          <div x-show="activeToolCalls.length === 0" class="typing-indicator"><span></span><span></span><span></span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-end gap-2 px-5 py-3">
+      <div class="flex-1">
+        <div class="flex items-center gap-2 mb-1.5">
+          <span class="text-xs text-slate-300 font-medium">💬 Follow-up Prompt</span>
+          <span class="text-xs text-slate-600">— session context retained from above results</span>
+        </div>
+        <textarea x-model="followupQuery"
+                  @keydown.enter.prevent="if(!$event.shiftKey) askFollowup()"
+                  :disabled="followupLoading"
+                  placeholder='Enter a follow-up prompt… (Enter to send · Shift+Enter for newline)'
+                  rows="2" class="input-field w-full resize-none text-sm"></textarea>
+      </div>
+      <button @click="askFollowup()"
+              :disabled="!followupQuery.trim() || followupLoading"
+              class="run-btn px-4 py-2.5 mb-0.5 flex-shrink-0">
+        <span x-show="!followupLoading">Send ↑</span>
+        <span x-show="followupLoading" class="spinner"></span>
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Connect CTA when no token -->
+<div x-show="!isConnected() && !outputVisible" class="text-center py-16 text-slate-400">
+  <div class="text-5xl mb-4">🔐</div>
+  <p class="text-lg font-semibold text-slate-200 mb-3">Connect Agent Harness</p>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 max-w-7xl mx-auto text-left">
+    <!-- Copilot option -->
+    <div class="bg-surface-800/80 p-6 rounded-xl border border-surface-600 shadow-sm flex flex-col items-center text-center">
+      <div class="w-12 h-12 bg-surface-700 rounded-full flex items-center justify-center mb-4">
+        <svg class="w-6 h-6 text-slate-300" fill="currentColor" viewBox="0 0 24 24"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+      </div>
+      <h3 class="font-medium text-slate-200 mb-2">GitHub Copilot</h3>
+      <p class="text-xs text-slate-400 mb-5">Connect via GitHub OAuth, provide a Personal Access Token, or use BYOK.</p>
+      
+      <div class="mt-auto w-full">
+        <template x-if="oauthAvailable">
+          <div class="flex flex-col gap-2">
+            <button @click="aiProvider = 'copilot'; loginWithGitHub()"
+                    class="w-full justify-center inline-flex items-center gap-2 px-4 py-2 bg-[#24292f] hover:bg-[#32383f] text-white text-sm font-medium rounded-lg border border-slate-600 transition-colors shadow-sm">
+              Sign in with GitHub
+            </button>
+            <button @click="aiProvider = 'copilot'; showSettings = true"
+                    class="w-full justify-center inline-flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium rounded-lg border border-slate-500 transition-colors shadow-sm">
+              Configure in Settings
+            </button>
+          </div>
+        </template>
+        <template x-if="!oauthAvailable">
+          <button @click="aiProvider = 'copilot'; showSettings = true"
+                  class="w-full justify-center inline-flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium rounded-lg border border-slate-500 transition-colors shadow-sm">
+            Connect via PAT in Settings
+          </button>
+        </template>
+      </div>
+    </div>
+
+    <!-- Antigravity option -->
+    <div class="bg-surface-800/80 p-6 rounded-xl border border-surface-600 shadow-sm flex flex-col items-center text-center">
+      <div class="w-12 h-12 bg-surface-700 rounded-full flex items-center justify-center mb-4">
+        <svg class="w-6 h-6" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+        </svg>
+      </div>
+      <h3 class="font-medium text-slate-200 mb-2">Google Antigravity</h3>
+      <p class="text-xs text-slate-400 mb-5">Connect via Gemini API Key.</p>
+      
+      <div class="mt-auto w-full">
+        <button @click="aiProvider = 'antigravity'; showSettings = true"
+                class="w-full justify-center inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-700/60 to-indigo-700/60 hover:from-blue-700/80 hover:to-indigo-700/80 text-white text-sm font-medium rounded-lg border border-blue-500/40 transition-all shadow-sm">
+          Add Gemini Key in Settings
+        </button>
+      </div>
+    </div>
+
+    <!-- Claude Agent option -->
+    <div class="bg-surface-800/80 p-6 rounded-xl border border-surface-600 shadow-sm flex flex-col items-center text-center">
+      <div class="w-12 h-12 bg-surface-700 rounded-full flex items-center justify-center mb-4">
+        <svg class="w-6 h-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+      </div>
+      <h3 class="font-medium text-slate-200 mb-2">Claude Agent</h3>
+      <p class="text-xs text-slate-400 mb-5">Connect via Anthropic API Key, Amazon Bedrock, or other BYOK providers.</p>
+      
+      <div class="mt-auto w-full">
+        <button @click="aiProvider = 'claude'; showSettings = true"
+                class="w-full justify-center inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-700/60 to-red-700/60 hover:from-orange-700/80 hover:to-red-700/80 text-white text-sm font-medium rounded-lg border border-orange-500/40 transition-all shadow-sm">
+          Add Claude Auth in Settings
+        </button>
+      </div>
+      <p class="text-[10px] text-slate-500 mt-4 text-left leading-tight w-full">
+        Use of Claude Agent is governed by <a href="https://www.anthropic.com/legal/commercial-terms" target="_blank" class="text-slate-400 hover:text-orange-400 underline">Anthropic's Commercial Terms of Service</a>.
+      </p>
+    </div>
+
+    <!-- Cursor option -->
+    <div class="bg-surface-800/80 p-6 rounded-xl border border-surface-600 shadow-sm flex flex-col items-center text-center">
+      <div class="w-12 h-12 bg-surface-700 rounded-full flex items-center justify-center mb-4">
+        <svg class="w-6 h-6 text-slate-300" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M4 4l16 8-8 3-3 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" fill="none"/>
+        </svg>
+      </div>
+      <h3 class="font-medium text-slate-200 mb-2">Cursor SDK</h3>
+      <p class="text-xs text-slate-400 mb-5">Connect via Cursor API Key.</p>
+      
+      <div class="mt-auto w-full">
+        <button @click="aiProvider = 'cursor'; showSettings = true"
+                class="w-full justify-center inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-700/60 to-fuchsia-700/60 hover:from-purple-700/80 hover:to-fuchsia-700/80 text-white text-sm font-medium rounded-lg border border-purple-500/40 transition-all shadow-sm">
+          Add Cursor Key in Settings
+        </button>
+      </div>
+    </div>
+    
+    <!-- Codex option -->
+    <div class="bg-surface-800/80 p-6 rounded-xl border border-surface-600 shadow-sm flex flex-col items-center text-center">
+      <div class="w-12 h-12 bg-surface-700 rounded-full flex items-center justify-center mb-4">
+        <svg class="w-6 h-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+      </div>
+      <h3 class="font-medium text-slate-200 mb-2">Codex SDK</h3>
+      <p class="text-xs text-slate-400 mb-5">Connect via OpenAI, Bedrock, or Ollama.</p>
+      
+      <div class="mt-auto w-full">
+        <button @click="aiProvider = 'codex'; showSettings = true"
+                class="w-full justify-center inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-teal-700/60 to-emerald-700/60 hover:from-teal-700/80 hover:to-emerald-700/80 text-white text-sm font-medium rounded-lg border border-teal-500/40 transition-all shadow-sm">
+          Add Codex Auth in Settings
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>

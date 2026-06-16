@@ -1,0 +1,23 @@
+meta {
+  name: OAuth Login
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/oauth/login
+  body: none
+  auth: none
+}
+
+docs {
+  Initiate GitHub OAuth login flow.
+  This endpoint redirects the browser to GitHub's OAuth authorization page.
+  After the user authorizes, GitHub redirects back to the server's callback URL
+  which exchanges the code for a Copilot token.
+  
+  NOTE: This is a browser-redirect endpoint. In Bruno, you'll see the HTML
+  redirect response. Open this URL in a browser for the full OAuth flow.
+  
+  No authentication required — this IS the authentication mechanism.
+}

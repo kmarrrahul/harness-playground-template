@@ -1,0 +1,23 @@
+meta {
+  name: List Models
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/models
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{copilotToken}}
+}
+
+docs {
+  List available LLM models from the configured provider.
+  Requires a valid Copilot token (gho_ from OAuth or env var).
+  Returns {"models": [...]} with id, name, supportsReasoning, etc.
+  
+  Authentication: Bearer token required (copilotToken).
+}

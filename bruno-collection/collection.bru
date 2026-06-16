@@ -1,0 +1,28 @@
+headers {
+  Content-Type: application/json
+}
+
+auth {
+  mode: bearer
+}
+
+auth:bearer {
+  token: {{copilotToken}}
+}
+
+script:pre-request {
+  // Read tokens from environment variables and set as Bruno variables
+  const copilotToken = bru.getProcessEnv("COPILOT_GITHUB_TOKEN");
+  const ghPatToken = bru.getProcessEnv("GH_ENTERPRISE_TOKEN");
+  const geminiApiKey = bru.getProcessEnv("GEMINI_API_KEY");
+
+  if (copilotToken) {
+    bru.setVar("copilotToken", copilotToken);
+  }
+  if (ghPatToken) {
+    bru.setVar("ghPatToken", ghPatToken);
+  }
+  if (geminiApiKey) {
+    bru.setVar("geminiApiKey", geminiApiKey);
+  }
+}

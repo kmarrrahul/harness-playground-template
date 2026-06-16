@@ -1,0 +1,31 @@
+meta {
+  name: List Active Sessions
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/debug/sessions
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{copilotToken}}
+}
+
+docs {
+  List all currently active conversation sessions on the server.
+  
+  Returns a list of active sessions with metadata including:
+  - session_id: unique session identifier
+  - provider: the LLM provider (copilot, antigravity)
+  - feature: the feature being used
+  - created_at: session creation timestamp
+  - last_activity: last interaction timestamp
+  
+  Useful for debugging session state and identifying stale sessions.
+  
+  Authentication: Bearer token required.
+  NOTE: This is a debug/development endpoint.
+}

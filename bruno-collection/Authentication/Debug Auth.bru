@@ -1,0 +1,17 @@
+meta {
+  name: Debug Auth
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/debug/auth
+  body: none
+  auth: inherit
+}
+
+docs {
+  Debug endpoint to verify auth header is reaching the server.
+  Returns masked token prefix and source (header/env/none).
+  Useful for troubleshooting 401 errors.
+}

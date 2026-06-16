@@ -1,0 +1,26 @@
+meta {
+  name: Session Events
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/diagnostics/sessions/:session_id/events
+  body: none
+  auth: inherit
+}
+
+params:path {
+  session_id: REPLACE_WITH_SESSION_ID
+}
+
+params:query {
+  limit: 50
+}
+
+docs {
+  Retrieve raw SDK session events for debugging.
+  Replace session_id with an actual session ID from a /api/run response.
+  limit: max events to return (default 200).
+  Returns {session_id, events: [...]}.
+}

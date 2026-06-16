@@ -1,0 +1,82 @@
+meta {
+  name: Run Feature - Encrypted Payload
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/run
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "encrypted_payload": "This will be populated by the pre-request script"
+  }
+}
+
+script:pre-request {
+  const axios = require("axios");
+
+  async function encryptPayload() {
+    try {
+      // 1. Fetch the server's session key from the homepage
+      const baseUrl = req.getUrl().replace("/api/run", "/");
+      const res = await axios.get(baseUrl);
+      const match = res.data.match(/APP_SESSION_KEY\s*=\s*"([^"]+)"/);
+      const key = match ? match[1] : "";
+
+      if (!key) {
+        console.error("Could not find APP_SESSION_KEY in server HTML");
+        return;
+      }
+
+      // 2. Build the true payload
+      const realPayload = {
+        "provider": "copilot",
+        "feature": "playground",
+        "params": {
+          "prompt": "What is 2+2? Answer from an encrypted request."
+        },
+        "model": "claude-sonnet-4.6",
+        "__auth_token": bru.getEnvVar("copilotToken") || ""
+      };
+
+      const text = JSON.stringify(realPayload);
+
+      // 3. XOR Obfuscation exactly like the frontend
+      let binStr = "";
+      for (let i = 0; i < text.length; i++) {
+        binStr += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+      }
+      
+      const encryptedStr = btoa(binStr);
+
+      // 4. Override the request body completely
+      req.setBody({
+        "encrypted_payload": encryptedStr
+      });
+      
+    } catch (e) {
+      console.error("Pre-request script error:", e);
+    }
+  }
+
+  // Bruno supports top-level await if not, we can just return the promise
+  await encryptPayload();
+}
+
+docs {
+  Run a Playground feature prompt using the Obfuscated Payload pattern.
+  
+  This request demonstrates how the UI encrypts payloads to hide credentials from the browser network tab.
+  
+  The pre-request script:
+  1. Fetches the dynamic `APP_SESSION_KEY` from the backend HTML.
+  2. Builds the actual JSON body (including the `__auth_token` instead of using the Authorization header).
+  3. XOR encrypts + Base64 encodes the payload.
+  4. Modifies the request body to ONLY contain `{"encrypted_payload": "..."}`.
+  
+  The server intercepts this, decrypts it, extracts the token, and processes it exactly like a normal request!
+}

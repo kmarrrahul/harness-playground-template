@@ -1,0 +1,34 @@
+# Git and Docker
+.git
+.github
+.gitignore
+.dockerignore
+Dockerfile
+
+# Deployment and Ops
+build_and_push.ps1
+bruno-collection/
+k8s/*
+!k8s/certs/
+
+# Local Dev/Testing
+tests/
+README.md
+
+# Environments
+.env
+.venv/
+env/
+venv/
+
+# Python Caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# IDEs and OS
+.idea/
+.vscode/
+.DS_Store
+*.log

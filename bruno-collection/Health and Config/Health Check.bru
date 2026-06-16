@@ -1,0 +1,16 @@
+meta {
+  name: Health Check
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/health
+  body: none
+  auth: none
+}
+
+docs {
+  Basic health check endpoint. Returns {"status":"ok","service":"play-infra"}.
+  No authentication required.
+}

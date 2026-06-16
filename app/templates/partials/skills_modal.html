@@ -1,0 +1,118 @@
+<!-- Skills Modal -->
+<div x-show="skillsModalOpen" 
+     class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+     x-transition.opacity
+     style="display: none;">
+  <div class="bg-surface-800 w-full max-w-2xl rounded-xl shadow-2xl border border-surface-700 overflow-hidden flex flex-col"
+       @click.away="closeSkillsModal()">
+    
+    <!-- Header -->
+    <div class="flex items-center justify-between px-6 py-4 border-b border-surface-700 bg-surface-900/50">
+      <h3 class="text-lg font-semibold text-slate-200">Manage Agent Skills</h3>
+      <button @click="closeSkillsModal()" class="text-slate-400 hover:text-slate-200 transition-colors">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div class="p-6 overflow-y-auto max-h-[60vh]">
+      
+      <!-- Upload Section -->
+      <div class="mb-8 bg-surface-900/30 p-4 rounded-xl border border-surface-700/50">
+        <div class="flex items-center justify-between mb-4">
+          <h4 class="text-sm font-medium text-slate-300 uppercase tracking-wide">Add Custom Skill</h4>
+          <div class="flex bg-surface-800 rounded-lg p-1 border border-surface-700">
+            <button @click="skillUploadType = 'text'" :class="skillUploadType === 'text' ? 'bg-surface-600 text-white' : 'text-slate-400 hover:text-slate-200'" class="px-3 py-1 text-xs font-medium rounded-md transition-colors">Plain Text</button>
+            <button @click="skillUploadType = 'zip'" :class="skillUploadType === 'zip' ? 'bg-surface-600 text-white' : 'text-slate-400 hover:text-slate-200'" class="px-3 py-1 text-xs font-medium rounded-md transition-colors">.zip File</button>
+          </div>
+        </div>
+
+        <!-- Plain Text Upload -->
+        <div x-show="skillUploadType === 'text'" class="space-y-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">Skill ID</label>
+            <input type="text" x-model="textSkillId" placeholder="e.g. commit-generator" class="w-full bg-surface-800 border border-surface-600 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-500 transition-colors placeholder-surface-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">Instructions (Markdown)</label>
+            <textarea x-model="textSkillContent" rows="4" placeholder="Enter your agent instructions here..." class="w-full bg-surface-800 border border-surface-600 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-500 transition-colors placeholder-surface-500 resize-y font-mono"></textarea>
+          </div>
+          <div class="flex items-center space-x-3">
+            <button @click="uploadTextSkill()" :disabled="skillsLoading || !textSkillId.trim() || !textSkillContent.trim() || (currentSessionId !== null && aiProvider !== 'claude')" :title="currentSessionId !== null && aiProvider !== 'claude' ? 'Cannot save new skills during an active session for this provider' : ''" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors flex items-center shadow-sm">
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+              Save Skill
+            </button>
+            <span x-show="skillsLoading" class="text-sm text-brand-400 animate-pulse">Saving...</span>
+          </div>
+        </div>
+
+        <!-- Zip Upload -->
+        <div x-show="skillUploadType === 'zip'" class="space-y-3">
+          <div class="flex items-center space-x-4">
+            <input type="file" accept=".zip" @change="uploadSkill" id="skillUpload" class="hidden" :disabled="currentSessionId !== null && aiProvider !== 'claude'" />
+            <label :for="currentSessionId !== null && aiProvider !== 'claude' ? '' : 'skillUpload'" :class="{'opacity-50 cursor-not-allowed': currentSessionId !== null && aiProvider !== 'claude'}" :title="currentSessionId !== null && aiProvider !== 'claude' ? 'Cannot upload new skills during an active session for this provider' : ''" class="px-4 py-2 bg-surface-700 hover:bg-surface-600 text-slate-200 text-sm font-medium rounded-lg transition-colors border border-surface-600 flex items-center shadow-sm" :style="currentSessionId !== null && aiProvider !== 'claude' ? '' : 'cursor: pointer;'">
+              <svg class="w-4 h-4 mr-2 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+              Upload .zip
+            </label>
+            <span x-show="skillsLoading" class="text-sm text-brand-400 animate-pulse">Uploading...</span>
+          </div>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            If zipping a folder (e.g. <code>my-skill/SKILL.md</code>), the folder name becomes the Skill ID.<br/>
+            If zipping files directly (e.g. just <code>SKILL.md</code>), a random ID is generated.
+          </p>
+        </div>
+
+        <p x-show="skillUploadError" x-text="skillUploadError" class="text-red-400 text-sm mt-3"></p>
+      </div>
+
+      <!-- Skills List -->
+      <div>
+        <h4 class="text-sm font-medium text-slate-300 uppercase tracking-wide mb-3">Available Skills</h4>
+        
+        <div x-show="skillsLoading && !availableSkills.bundled.length && !availableSkills.user_uploaded.length" class="text-slate-400 text-sm py-4">
+          Loading skills...
+        </div>
+
+        <div class="space-y-4">
+          <!-- User Uploaded -->
+          <template x-for="skill in availableSkills.user_uploaded" :key="skill.id">
+            <div class="flex items-start justify-between p-4 bg-surface-900/50 rounded-lg border border-surface-700">
+              <div class="flex items-start">
+                <input type="checkbox" :checked="enabledSkills.includes(skill.id)" @change="toggleSkill(skill.id)" class="mt-1 mr-3 w-4 h-4 rounded border-surface-600 bg-surface-800 text-brand-500 focus:ring-brand-500" />
+                <div>
+                  <h5 class="font-medium text-slate-200 flex items-center">
+                    <span x-text="skill.name || skill.id"></span>
+                    <span class="ml-2 px-2 py-0.5 text-xs bg-brand-500/10 text-brand-400 rounded-full border border-brand-500/20">Custom</span>
+                  </h5>
+                  <p class="text-sm text-slate-400 mt-1" x-text="skill.description || 'No description provided.'"></p>
+                </div>
+              </div>
+              <button @click="deleteSkill(skill.id)" class="text-red-400/70 hover:text-red-400 p-1" title="Delete Skill">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+              </button>
+            </div>
+          </template>
+
+          <!-- Bundled -->
+          <template x-for="skill in availableSkills.bundled" :key="skill.id">
+            <div class="flex items-start justify-between p-4 bg-surface-900/50 rounded-lg border border-surface-700">
+              <div class="flex items-start">
+                <input type="checkbox" :checked="enabledSkills.includes(skill.id)" @change="toggleSkill(skill.id)" class="mt-1 mr-3 w-4 h-4 rounded border-surface-600 bg-surface-800 text-brand-500 focus:ring-brand-500" />
+                <div>
+                  <h5 class="font-medium text-slate-200 flex items-center">
+                    <span x-text="skill.name || skill.id"></span>
+                    <span class="ml-2 px-2 py-0.5 text-xs bg-slate-500/10 text-slate-400 rounded-full border border-slate-500/20">Bundled</span>
+                  </h5>
+                  <p class="text-sm text-slate-400 mt-1" x-text="skill.description || 'No description provided.'"></p>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

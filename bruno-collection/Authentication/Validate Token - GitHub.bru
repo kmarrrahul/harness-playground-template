@@ -1,0 +1,29 @@
+meta {
+  name: Validate Token - GitHub
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/validate-token
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "type": "github",
+    "token": "{{copilotToken}}"
+  }
+}
+
+docs {
+  Validate a GitHub Copilot token against api.github.com.
+  
+  Body fields:
+  - type: "github" — validates against the public GitHub API
+  - token: the GitHub/Copilot token to validate
+  
+  Returns validation result with user info on success,
+  or an error message if the token is invalid/expired.
+}

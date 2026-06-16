@@ -1,0 +1,25 @@
+meta {
+  name: Set GitHub Auth (GHES)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/auth/github
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "mode": "ghes",
+    "token": "{{ghPatToken}}",
+    "url": "{{ghesHost}}"
+  }
+}
+
+docs {
+  Store GitHub PAT in server memory for repo/gist operations.
+  mode: "ghes" (use enterprise host) or "copilot_url" (use github.com)
+  Token is memory-only, never persisted to disk.
+}

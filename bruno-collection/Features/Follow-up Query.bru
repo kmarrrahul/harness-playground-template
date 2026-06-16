@@ -1,0 +1,46 @@
+meta {
+  name: Follow-up Query
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/followup
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{copilotToken}}
+}
+
+body:json {
+  {
+    "provider": "copilot",
+    "session_id": "SESSION_ID_HERE",
+    "query": "follow up question",
+    "model": "claude-sonnet-4.6"
+  }
+}
+
+docs {
+  Send a follow-up query to an existing conversation session.
+  
+  Body fields:
+  - provider: "copilot" | "antigravity" — must match the original session's provider
+  - session_id: the session ID from a previous /api/run response (done event)
+  - query: the follow-up question text
+  - model: the LLM model to use (should match original session)
+  
+  Returns an SSE stream (text/event-stream) with the same event types as /api/run:
+  - delta, message, reasoning, tool_start, tool_end, done, error
+  
+  USAGE: 
+  1. First run a /api/run request
+  2. Copy the session_id from the "done" SSE event
+  3. Paste it into the session_id field above
+  4. Change the query to your follow-up question
+  
+  Authentication: Bearer token required.
+  NOTE: This is an SSE endpoint. Bruno will show the raw SSE text.
+}

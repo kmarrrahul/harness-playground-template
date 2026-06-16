@@ -1,0 +1,41 @@
+meta {
+  name: Create Gist
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/gist
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{copilotToken}}
+}
+
+body:json {
+  {
+    "title": "Infra Playground Test Gist",
+    "content": "# Test\n\nThis is a test gist created from Bruno.",
+    "public": false,
+    "gh_cli_token": "{{ghPatToken}}",
+    "url": "{{ghesHost}}"
+  }
+}
+
+docs {
+  Create a GitHub Gist from session output or arbitrary content.
+  
+  Body fields:
+  - title: the gist filename/title
+  - content: markdown or text content for the gist
+  - public: true for public gist, false for secret gist
+  - gh_cli_token: GitHub PAT for gist creation (falls back to in-memory token)
+  - url: optional GHES host override (empty = use github.com)
+  
+  Returns {url, id} of the created gist on success.
+  
+  Authentication: Bearer token required.
+  Requires a valid GitHub PAT with gist scope.
+}

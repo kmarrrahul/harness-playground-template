@@ -1,0 +1,55 @@
+meta {
+  name: Run Feature - Copilot Provider
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/run
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{copilotToken}}
+}
+
+body:json {
+  {
+    "provider": "copilot",
+    "feature": "playground",
+    "params": {
+      "prompt": "What is 2+2?"
+    },
+    "model": "claude-sonnet-4.6",
+    "aws": {},
+    "kube": {},
+    "gh_cli_token": "",
+    "reasoning_effort": ""
+  }
+}
+
+docs {
+  Run a Playground feature prompt via the Copilot provider.
+  
+  Body fields:
+  - provider: "copilot" — uses GitHub Copilot as the LLM backend
+  - feature: "playground" — the feature to execute
+  - params.prompt: the user's natural language query
+  - model: the LLM model to use (e.g. "claude-sonnet-4.6", "gpt-5-mini")
+  - aws: optional AWS credentials object (empty = use server env)
+  - kube: optional Kubernetes config (empty = use server env)
+  - gh_cli_token: optional GitHub PAT for repo/gist operations
+  - reasoning_effort: optional ("low", "medium", "high", or empty)
+  
+  Returns an SSE stream (text/event-stream) with events:
+  - delta: incremental assistant text
+  - message: complete assistant message
+  - reasoning / reasoning_delta: model thinking (if supported)
+  - tool_start / tool_end: tool invocations
+  - done: session complete (includes session_id for follow-up)
+  - error: error message
+  
+  Authentication: Bearer token required (copilotToken).
+  NOTE: This is an SSE endpoint. Bruno will show the raw SSE text.
+}

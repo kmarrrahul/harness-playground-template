@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <base href="{{ base_path }}" />
+  <title>Harness Playground</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand:   { 50:'#eef5ff', 100:'#d9e8ff', 400:'#60a5fa', 500:'#3b82f6', 600:'#2563eb', 700:'#1d4ed8', 900:'#1e3a8a' },
+            surface: { 
+              950: 'rgb(var(--color-surface-950) / <alpha-value>)',
+              900: 'rgb(var(--color-surface-900) / <alpha-value>)',
+              800: 'rgb(var(--color-surface-800) / <alpha-value>)',
+              700: 'rgb(var(--color-surface-700) / <alpha-value>)',
+              600: 'rgb(var(--color-surface-600) / <alpha-value>)'
+            },
+            slate: {
+              200: 'rgb(var(--color-slate-200) / <alpha-value>)',
+              300: 'rgb(var(--color-slate-300) / <alpha-value>)',
+              400: 'rgb(var(--color-slate-400) / <alpha-value>)',
+              500: 'rgb(var(--color-slate-500) / <alpha-value>)',
+              600: 'rgb(var(--color-slate-600) / <alpha-value>)',
+              700: 'rgb(var(--color-slate-700) / <alpha-value>)',
+              800: 'rgb(var(--color-slate-800) / <alpha-value>)',
+              900: 'rgb(var(--color-slate-900) / <alpha-value>)'
+            },
+            white: 'rgb(var(--color-white) / <alpha-value>)',
+            accent:  '#38bdf8',
+          },
+          animation: {
+            'pulse-fast': 'pulse 1s cubic-bezier(0.4,0,0.6,1) infinite',
+            'fade-in':    'fadeIn 0.4s ease-out',
+            'slide-up':   'slideUp 0.35s ease-out',
+          },
+          keyframes: {
+            fadeIn:  { '0%':{ opacity:0 }, '100%':{ opacity:1 } },
+            slideUp: { '0%':{ transform:'translateY(12px)', opacity:0 }, '100%':{ transform:'translateY(0)', opacity:1 } },
+          },
+        }
+      }
+    }
+  </script>
+
+  <!-- Alpine.js -->
+  <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <!-- marked.js + highlight.js -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+  <!-- Mermaid.js (local tiny bundle) -->
+  <script src="static/js/mermaid.tiny.js"></script>
+
+  <style>
+    /* CSS Variables Theme System */
+    :root {
+      /* DARK MODE (Original default) */
+      --color-surface-950: 11 15 26;   /* #0b0f1a */
+      --color-surface-900: 15 22 41;   /* #0f1629 */
+      --color-surface-800: 19 30 53;   /* #131e35 */
+      --color-surface-700: 26 39 68;   /* #1a2744 */
+      --color-surface-600: 31 46 80;   /* #1f2e50 */
+      
+      --color-white: 255 255 255;
+      --color-slate-200: 226 232 240;
+      --color-slate-300: 203 213 225;
+      --color-slate-400: 148 163 184;
+      --color-slate-500: 100 116 139;
+      --color-slate-600: 71 85 105;
+      --color-slate-700: 51 65 85;
+      --color-slate-800: 30 41 59;
+      --color-slate-900: 15 23 42;
+    }
+
+    :root.light-theme {
+      /* SOLARIZED LIGHT MODE (Deeper Yellow Shade) */
+      --color-surface-950: 222 208 171; /* Main background - deeper yellow/tan */
+      --color-surface-900: 227 214 179; /* Header / Modals */
+      --color-surface-800: 232 220 188; /* Cards */
+      --color-surface-700: 208 193 154; /* Hover state */
+      --color-surface-600: 178 163 120; /* Borders */
+      
+      /* Text colors for light mode (Solarized) - Absolute Black */
+      --color-white: 0 0 0;             /* Pure black - Primary titles */
+      --color-slate-200: 0 0 0;         /* Pure black - High contrast text */
+      --color-slate-300: 0 0 0;         /* Pure black - Primary text */
+      --color-slate-400: 15 15 15;      /* Near black - Secondary text */
+      --color-slate-500: 30 30 30;      /* Darkest charcoal - Muted text */
+      --color-slate-600: 178 163 120;   /* Mapped to borders/dividers */
+      --color-slate-700: 208 193 154;   /* base2 */
+      --color-slate-800: 222 208 171;   /* base3 */
+      --color-slate-900: 255 255 255;
+    }
+
+    :root.theme-solarized-dark {
+      /* SOLARIZED DARK MODE */
+      --color-surface-950: 0 43 54;    /* #002b36 base03 (Main background) */
+      --color-surface-900: 4 48 61;    /* Slightly lighter for header */
+      --color-surface-800: 7 54 66;    /* #073642 base02 (Cards) */
+      --color-surface-700: 14 68 82;   /* Hover state */
+      --color-surface-600: 88 110 117; /* #586e75 base01 (Borders) */
+      
+      /* Text colors for dark mode (Solarized) */
+      --color-white: 253 246 227;      /* #fdf6e3 base3 - Primary titles */
+      --color-slate-200: 238 232 213;  /* #eee8d5 base2 */
+      --color-slate-300: 147 161 161;  /* #93a1a1 base1 - Primary text */
+      --color-slate-400: 131 148 150;  /* #839496 base0 - Secondary text */
+      --color-slate-500: 101 123 131;  /* #657b83 base00 - Muted text */
+      --color-slate-600: 88 110 117;   /* Mapped to borders/dividers */
+      --color-slate-700: 7 54 66;      /* base02 */
+      --color-slate-800: 0 43 54;      /* base03 */
+      --color-slate-900: 0 0 0;
+    }
+
+    :root.theme-mint {
+      /* COOL MINT GREEN THEME (Light) */
+      --color-surface-950: 240 253 244; /* #f0fdf4 green-50 Background */
+      --color-surface-900: 220 252 231; /* #dcfce7 green-100 Header */
+      --color-surface-800: 255 255 255; /* Cards pure white */
+      --color-surface-700: 187 247 208; /* #bbf7d0 green-200 Hover */
+      --color-surface-600: 134 239 172; /* #86efac green-300 Borders */
+      
+      --color-white: 20 83 45;          /* #14532d green-900 Titles */
+      --color-slate-200: 22 101 52;     /* green-800 */
+      --color-slate-300: 21 128 61;     /* green-700 Primary text */
+      --color-slate-400: 22 163 74;     /* green-600 Secondary text */
+      --color-slate-500: 34 197 94;     /* green-500 Muted */
+      --color-slate-600: 134 239 172;   /* Mapped borders */
+      --color-slate-700: 220 252 231;   /* Hover bg */
+      --color-slate-800: 240 253 244;   /* Background */
+      --color-slate-900: 255 255 255;
+    }
+
+    :root.theme-olive {
+      /* WARM OLIVE THEME (Dark) */
+      --color-surface-950: 63 66 56;    /* #3f4238 Background */
+      --color-surface-900: 52 54 46;    /* Header */
+      --color-surface-800: 74 77 66;    /* #4a4d42 Cards */
+      --color-surface-700: 98 102 88;   /* Hover */
+      --color-surface-600: 120 124 108; /* Borders */
+      
+      --color-white: 254 252 232;       /* #fefce8 yellow-50 Titles */
+      --color-slate-200: 250 240 137;   /* yellow-200 */
+      --color-slate-300: 253 224 71;    /* yellow-300 Primary Text */
+      --color-slate-400: 217 217 217;   /* light gray Secondary */
+      --color-slate-500: 161 161 170;   /* Muted */
+      --color-slate-600: 120 124 108;   /* Borders */
+      --color-slate-700: 74 77 66;      /* Cards */
+      --color-slate-800: 63 66 56;      /* Background */
+      --color-slate-900: 0 0 0;
+    }
+
+    :root.theme-matcha {
+      /* TRUE MATCHA THEME (Dark) */
+      --color-surface-950: 28 46 38;    /* Background */
+      --color-surface-900: 20 34 28;    /* Header */
+      --color-surface-800: 37 60 50;    /* Cards */
+      --color-surface-700: 56 88 74;    /* Hover */
+      --color-surface-600: 76 118 100;  /* Borders */
+      
+      --color-white: 220 252 231;       /* green-100 Titles */
+      --color-slate-200: 187 247 208;   /* green-200 */
+      --color-slate-300: 134 239 172;   /* green-300 Text */
+      --color-slate-400: 167 243 208;   /* emerald-200 Secondary */
+      --color-slate-500: 110 231 183;   /* emerald-300 Muted */
+      --color-slate-600: 76 118 100;    /* Borders */
+      --color-slate-700: 37 60 50;      /* Cards */
+      --color-slate-800: 28 46 38;      /* Background */
+      --color-slate-900: 0 0 0;
+    }
+
+    /* Force high-contrast text on primary action buttons in Light Themes */
+    :root.light-theme button[class*="bg-[#24292f]"],
+    :root.light-theme button[class*="bg-brand-600"],
+    :root.theme-mint button[class*="bg-[#24292f]"],
+    :root.theme-mint button[class*="bg-brand-600"] {
+      color: #ffffff !important;
+    }
+  </style>
+
+  <!-- JS libs & mixins (sync, before Alpine) -->
+  <script src="static/js/lib/markdown.js?v=2"></script>
+  <script src="static/js/lib/mermaid-render.js?v=2"></script>
+  <script src="static/js/lib/streaming.js?v=2"></script>
+  <script src="static/js/mixins/auth.js?v=2"></script>
+  <script src="static/js/mixins/feature-constants.js?v=2"></script>
+  <script src="static/js/mixins/feature-templates.js?v=2"></script>
+  <script src="static/js/mixins/features.js?v=2"></script>
+  <script src="static/js/mixins/skills.js?v=2"></script>
+  <script>window.APP_SESSION_KEY = "{{ encryption_key }}";</script>
+  <script src="static/js/app.js?v=2"></script>
+
+  <!-- Custom styles -->
+  <link rel="stylesheet" href="static/css/app.css" />
+</head>
+
+<body class="bg-surface-950 text-slate-100 min-h-screen antialiased"
+      x-data="appStore()"
+      x-init="init()">
+
+  {% include "partials/sidebar.html" %}
+  {% include "partials/header.html" %}
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       MAIN CONTENT
+  ══════════════════════════════════════════════════════════════════════════ -->
+  <main class="max-w-7xl mx-auto px-6 py-8">
+
+    {% include "partials/feature_cards.html" %}
+    {% include "partials/output_panel.html" %}
+    {% include "partials/template_modal.html" %}
+    {% include "partials/skills_modal.html" %}
+
+  </main>
+
+</body>
+</html>

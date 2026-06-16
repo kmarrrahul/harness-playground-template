@@ -1,0 +1,53 @@
+meta {
+  name: Run Feature - Antigravity Provider
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/run
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{geminiApiKey}}
+}
+
+body:json {
+  {
+    "provider": "antigravity",
+    "feature": "playground",
+    "params": {
+      "prompt": "What is 2+2?"
+    },
+    "model": "gemini-3.5-flash",
+    "aws": {},
+    "kube": {},
+    "reasoning_effort": "low"
+  }
+}
+
+docs {
+  Run a Playground feature prompt via the Antigravity (Gemini) provider.
+  
+  Body fields:
+  - provider: "antigravity" — uses Google Gemini as the LLM backend
+  - feature: "playground" — the feature to execute
+  - params.prompt: the user's natural language query
+  - model: the Gemini model to use (e.g. "gemini-3.5-flash")
+  - aws: optional AWS credentials object (empty = use server env)
+  - kube: optional Kubernetes config (empty = use server env)
+  - reasoning_effort: "low" | "medium" | "high"
+  
+  Returns an SSE stream (text/event-stream) with events:
+  - delta: incremental assistant text
+  - message: complete assistant message
+  - reasoning / reasoning_delta: model thinking
+  - tool_start / tool_end: tool invocations
+  - done: session complete (includes session_id for follow-up)
+  - error: error message
+  
+  Authentication: Bearer token required (geminiApiKey).
+  NOTE: This is an SSE endpoint. Bruno will show the raw SSE text.
+}

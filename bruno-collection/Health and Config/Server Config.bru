@@ -1,0 +1,19 @@
+meta {
+  name: Server Config
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/server-config
+  body: none
+  auth: none
+}
+
+docs {
+  Returns server configuration flags:
+  - aws_configured: whether AWS env vars are set
+  - gh_cli_configured: whether GH_TOKEN_CLI is set
+  - kubectl_available: whether kubectl is on PATH
+  - kubeconfig_present: whether KUBECONFIG exists
+}

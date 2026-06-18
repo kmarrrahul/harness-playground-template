@@ -652,13 +652,15 @@
     <template x-if="versionInfo">
       <div class="space-y-1 text-xs text-slate-500 font-mono">
         <div class="flex justify-between gap-2">
-          <span class="text-slate-600">SDK</span>
-          <span class="text-slate-400" x-text="versionInfo.sdk?.installed || '—'"></span>
+          <span class="text-slate-600" x-text="(aiProvider.charAt(0).toUpperCase() + aiProvider.slice(1)) + ' SDK'"></span>
+          <span class="text-slate-400" x-text="versionInfo[aiProvider]?.sdk?.installed || '—'"></span>
         </div>
-        <div class="flex justify-between gap-2">
-          <span class="text-slate-600">CLI</span>
-          <span class="text-slate-400" x-text="versionInfo.cli?.installed || '—'"></span>
-        </div>
+        <template x-if="aiProvider === 'copilot'">
+          <div class="flex justify-between gap-2">
+            <span class="text-slate-600">Copilot CLI</span>
+            <span class="text-slate-400" x-text="versionInfo.copilot?.cli?.installed || '—'"></span>
+          </div>
+        </template>
       </div>
     </template>
     <template x-if="!versionInfo">

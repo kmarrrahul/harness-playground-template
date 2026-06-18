@@ -39,16 +39,22 @@ async def get_version():
     import subprocess
     import re
 
-    # SDK version
-    try:
-        sdk_version = importlib.metadata.version("github-copilot-sdk")
-    except importlib.metadata.PackageNotFoundError:
-        sdk_version = "unknown"
+    def get_pkg_version(name):
+        try:
+            return importlib.metadata.version(name)
+        except importlib.metadata.PackageNotFoundError:
+            return "unknown"
+
+    copilot_sdk = get_pkg_version("github-copilot-sdk")
+    antigravity_sdk = get_pkg_version("google-antigravity")
+    cursor_sdk = get_pkg_version("cursor-sdk")
+    claude_sdk = get_pkg_version("claude-agent-sdk")
+    codex_sdk = get_pkg_version("openai-codex")
 
     cli_path = "unknown"
     cli_version = "unknown"
     try:
-        from ..copilot_service import _find_copilot_cli
+        from ..providers.copilot_service import _find_copilot_cli
         resolved_path, args_prefix = _find_copilot_cli()
         cli_path = resolved_path
         if args_prefix:
@@ -66,8 +72,11 @@ async def get_version():
         cli_version = f"error: {exc}"
 
     return JSONResponse({
-        "sdk": {"installed": sdk_version},
-        "cli": {"installed": cli_version, "path": cli_path},
+        "copilot": {"sdk": {"installed": copilot_sdk}, "cli": {"installed": cli_version, "path": cli_path}},
+        "antigravity": {"sdk": {"installed": antigravity_sdk}},
+        "cursor": {"sdk": {"installed": cursor_sdk}},
+        "claude": {"sdk": {"installed": claude_sdk}},
+        "codex": {"sdk": {"installed": codex_sdk}}
     })
 
 @router.post("/api/gist")

@@ -406,21 +406,27 @@
         <div>
           <!-- Auth Method Selection -->
           <div class="flex rounded-md bg-surface-800 p-1 mb-4">
+            <button @click="codexAuthMethod = 'chatgpt'"
+                    :class="codexAuthMethod === 'chatgpt' ? 'bg-brand-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'"
+                    class="flex-1 py-1 px-3 rounded text-[10px] font-medium transition-colors">
+              ChatGPT
+            </button>
             <button @click="codexAuthMethod = 'openai'"
                     :class="codexAuthMethod === 'openai' ? 'bg-brand-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'"
-                    class="flex-1 py-1 px-3 rounded text-xs font-medium transition-colors">
+                    class="flex-1 py-1 px-3 rounded text-[10px] font-medium transition-colors">
               OpenAI
             </button>
             <button @click="codexAuthMethod = 'bedrock'"
                     :class="codexAuthMethod === 'bedrock' ? 'bg-brand-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'"
-                    class="flex-1 py-1 px-3 rounded text-xs font-medium transition-colors">
-              Bedrock Mantle
+                    class="flex-1 py-1 px-3 rounded text-[10px] font-medium transition-colors">
+              Bedrock
             </button>
             <button @click="codexAuthMethod = 'ollama'"
                     :class="codexAuthMethod === 'ollama' ? 'bg-brand-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'"
-                    class="flex-1 py-1 px-3 rounded text-xs font-medium transition-colors">
+                    class="flex-1 py-1 px-3 rounded text-[10px] font-medium transition-colors">
               Ollama
             </button>
+
           </div>
 
           <template x-if="codexAuthMethod === 'bedrock'">
@@ -439,7 +445,38 @@
             </div>
           </template>
 
-          <template x-if="codexAuthMethod !== 'ollama'">
+          <template x-if="codexAuthMethod === 'chatgpt'">
+            <div class="mb-3 text-center">
+              <template x-if="!codexChatgptPolling">
+                <p class="text-xs text-slate-500 mb-2">Login with your ChatGPT subscription.</p>
+              </template>
+              <template x-if="codexChatgptPolling">
+                <div class="p-3 bg-brand-900/20 border border-brand-700/30 rounded-lg mt-2 mb-2">
+                  <p class="text-xs text-brand-400 mb-2 font-medium flex items-center justify-center gap-2">
+                    <span class="spinner inline-block w-4 h-4"></span> Waiting for login...
+                  </p>
+                  <a :href="codexChatgptAuthUrl" target="_blank" class="inline-block px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white text-xs rounded transition-colors">
+                    Open Login Page
+                  </a>
+                  <p class="text-[10px] text-slate-500 mt-2">Please complete the login in your browser.</p>
+                  <div class="mt-3 border border-yellow-500/30 bg-yellow-500/10 rounded p-2">
+                    <p class="text-[11px] text-yellow-200/90 font-medium mb-1 flex items-start gap-1.5">
+                      <svg class="w-3.5 h-3.5 text-yellow-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span>If your browser fails with <b>"Site cannot be reached"</b>, copy the full <code>http://localhost...</code> URL from the address bar and paste it below:</span>
+                    </p>
+                    <div class="flex gap-2 mt-2">
+                      <input type="text" x-model="codexChatgptCallbackUrl" placeholder="http://localhost:..." class="flex-1 bg-surface-900 border border-yellow-500/30 rounded px-2 py-1 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-yellow-500" />
+                      <button @click="submitCodexChatgptCallback()" class="px-2 py-1 bg-yellow-600 hover:bg-yellow-500 text-white text-[10px] font-medium rounded transition-colors border border-yellow-500">Submit</button>
+                    </div>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </template>
+
+          <template x-if="codexAuthMethod !== 'ollama' && codexAuthMethod !== 'chatgpt'">
             <div>
               <label class="block text-xs text-slate-500 mb-1">
                 <span x-text="codexAuthMethod === 'bedrock' ? 'AWS Credentials (ACCESS_KEY,SECRET_KEY)' : 'OpenAI API Key'"></span>
@@ -451,10 +488,10 @@
           </template>
           <div class="flex gap-2 mb-2">
             <button @click="connectCodex()"
-                    :disabled="(codexAuthMethod !== 'ollama' && !codexApiKey.trim()) || (codexValidation && codexValidation.loading)"
+                    :disabled="(codexAuthMethod !== 'ollama' && codexAuthMethod !== 'chatgpt' && !codexApiKey.trim()) || isValidatingCodex"
                     class="flex-1 px-3 py-1.5 text-xs font-medium bg-brand-600 hover:bg-brand-700 text-white rounded-lg transition-colors disabled:opacity-40">
-              <span x-show="!(codexValidation && codexValidation.loading)">Connect</span>
-              <span x-show="codexValidation && codexValidation.loading" class="spinner inline-block w-3 h-3"></span>
+              <span x-show="!isValidatingCodex" x-text="codexAuthMethod === 'chatgpt' ? 'Start Login' : 'Connect'"></span>
+              <span x-show="isValidatingCodex" class="spinner inline-block w-3 h-3"></span>
             </button>
             <button @click="codexApiKey = ''; codexValidation = null;"
                     class="px-3 py-1.5 text-xs font-medium bg-surface-700 hover:bg-surface-600 text-slate-300 rounded-lg transition-colors border border-surface-600">Clear</button>

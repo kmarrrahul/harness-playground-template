@@ -22,8 +22,9 @@ Update the checkboxes below as new integration pathways are validated.
 - [ ] Anthropic Console API Key
 
 ## 4. Codex SDK
+- [x] ChatGPT Subscription
 - [x] Local Ollama
-- [x] OpenAI API Key
+- [ ] OpenAI API Key
 - [ ] AWS Bedrock (Mantle Endpoint)
 
 ## 5. Cursor SDK

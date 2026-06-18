@@ -163,6 +163,8 @@ function featuresMixin() {
           codex_ollama_base_url: this.codexOllamaBaseUrl,
           enabled_skills: this.enabledSkills,
           inherit_github_env: this.inheritGithubEnv,
+          app_session_key: window.APP_SESSION_KEY,
+          session_id: this.currentSessionId,
         });
         console.log(`[Harness Playground] Feature "${featureId}" completed. session=${this.currentSessionId}`);
         feat.status = 'done';
@@ -217,6 +219,7 @@ function featuresMixin() {
         const { payload, token } = this._buildEncryptedPayload({
           provider: this.aiProvider || 'copilot',
           session_id: this.currentSessionId,
+          app_session_key: window.APP_SESSION_KEY,
           query: query,
           model: this.selectedModel,
           gh_cli_hostname: (this.ghCliHostname || '').trim(),

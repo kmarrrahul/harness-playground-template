@@ -6,7 +6,7 @@
 
 **Harness Playground Template** is a self-hosted, vendor-agnostic AI Playground template. It gives you a unified, web-based chat interface to orchestrate your local or remote workflows through various popular AI pair programmer SDKs available today: **GitHub Copilot SDK**, **Google Antigravity**, **Cursor SDK**, **Claude Agent SDK**, and **Codex SDK**.
 
-Harness Playground Template is built around your existing subscriptions. If you have a **GitHub Copilot** license, you can connect the Github Copilot SDK. If you subscribe to **Google AI Studio**, you can use Antigravity. If you are a **Cursor Pro** user, connect the Cursor SDK. Have **AWS Bedrock** access or an **Anthropic** account? Connect Claude Agent directly. Already using **OpenAI**, **AWS Bedrock Mantle** or **Ollama**? Connect Codex. Use what you already pay for!
+Harness Playground Template is built around your existing subscriptions. If you have a **GitHub Copilot** license, you can connect the Github Copilot SDK. If you subscribe to **Google AI Studio**, you can use Antigravity. If you are a **Cursor Pro** user, connect the Cursor SDK. Have **AWS Bedrock** access or an **Anthropic** account? Connect Claude Agent directly. Already using a **ChatGPT subscription**, **OpenAI**, **AWS Bedrock Mantle** or **Ollama**? Connect Codex. Use what you already pay for!
 
 By wrapping best-in-class agentic SDKs into a single backend, this template lets you seamlessly switch between AI providers without vendor lock-in. You bring your own credentials (BYOK), and the agent securely runs terminal commands, utilizes extensible Agent Skills, reads files, and writes code on your behalf in an ephemeral, isolated environment.
 
@@ -32,7 +32,7 @@ This generic template abstracts the complexity of individual SDKs to provide a u
 - **[Google Antigravity SDK](https://github.com/google-antigravity/antigravity-sdk-python)**: Google's official advanced agentic coding assistant designed for complex, multi-step workflows.
 - **[Cursor SDK](https://cursor.com/docs/sdk/python)**: Connect via the Cursor's Official Python SDK.
 - **[Claude Agent SDK](https://code.claude.com/docs/en/agent-sdk/overview)**: Powered by Anthropic's official Agent SDK. Supports standard Anthropic API keys OR Amazon Bedrock BYOK (bring your own AWS credentials) via environmental injection.
-- **[Codex SDK](https://developers.openai.com/codex/)**: Official OpenAI Codex SDK. Allows native connection to OpenAI, AWS Bedrock, and local Ollama servers.
+- **[Codex SDK](https://developers.openai.com/codex/)**: Official OpenAI Codex SDK. Allows native connection via ChatGPT subscriptions, OpenAI API keys, AWS Bedrock, and local Ollama servers.
 
 ---
 
@@ -189,6 +189,8 @@ Available Binary build arguments (default `true`):
 - ENABLE_GH
 
 ### Using helper Script:
+
+> **Pre-built Images**: You can find ready-to-use Docker images for all configurations at [kmarrrahul/harness-playground-template on DockerHub](https://hub.docker.com/r/kmarrrahul/harness-playground-template).
 To build a lightweight image with only Github Copilot SDK Integration, you can run:
 ```powershell
 .\build_and_push.ps1 -EnableClaude $false -EnableCursor $false -EnableAntigravity $false -EnableCodex $false -EnableGh $false

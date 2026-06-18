@@ -29,6 +29,7 @@ class RunRequest(BaseModel):
     codex_ollama_base_url: str = "http://localhost:11434/v1"
     enabled_skills: list[str] = []
     session_id: str | None = None
+    app_session_key: str = ""
     inherit_github_env: bool = True
 
 
@@ -56,4 +57,5 @@ class FollowupRequest(BaseModel):
     codex_bedrock_region: str = "us-east-1"
     codex_ollama_base_url: str = "http://localhost:11434/v1"
     enabled_skills: list[str] = []
+    app_session_key: str = ""
     inherit_github_env: bool = True

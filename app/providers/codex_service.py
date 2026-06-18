@@ -21,6 +21,8 @@ async def validate_api_key(api_key: str, auth_method: str = "openai", bedrock_re
     
     if auth_method == "ollama":
         user_label = f"Ollama ({ollama_base_url})"
+    elif auth_method == "chatgpt":
+        user_label = "ChatGPT Subscription User"
     else:
         user_label = "OpenAI User" if auth_method == "openai" else f"Bedrock ({bedrock_region})"
         
@@ -34,15 +36,23 @@ async def list_models(api_key: str, auth_method: str = "openai", bedrock_region:
                 {"id": "gpt-5.5", "name": "gpt-5.5", "supportsReasoning": True},
                 {"id": "gpt-5.4-mini", "name": "gpt-5.4-mini", "supportsReasoning": True},
                 {"id": "gpt-5.3-codex-spark", "name": "gpt-5.3-codex-spark", "supportsReasoning": True}]
+    elif auth_method == "chatgpt":
+        return [{"id": "gpt-5.5", "name": "gpt-5.5", "supportsReasoning": True},
+                {"id": "gpt-5.4", "name": "gpt-5.4", "supportsReasoning": True},
+                {"id": "gpt-5.4-mini", "name": "gpt-5.4-mini", "supportsReasoning": True},
+                {"id": "gpt-5.3-codex-spark", "name": "gpt-5.3-codex-spark", "supportsReasoning": True},
+                {"id": "o1", "name": "o1", "supportsReasoning": True},
+                {"id": "o3-mini", "name": "o3-mini", "supportsReasoning": True}]
     else:
         import httpx
         url = "https://api.openai.com/v1/models"
         headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
+
         
         if auth_method == "ollama":
             url = (ollama_base_url.rstrip("/") if ollama_base_url else "http://localhost:11434/v1") + "/models"
         try:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(verify=False) as client:
                 resp = await client.get(url, headers=headers, timeout=5.0)
                 resp.raise_for_status()
                 data = resp.json()
@@ -75,11 +85,46 @@ async def _stream_codex(turn, session_id: str) -> AsyncGenerator[dict, None]:
 
 _SESSION_TO_THREAD = {}
 
+_LOGIN_STATUS = {}
+_LOGIN_CODEX_CONTEXTS = {}
+
+async def start_chatgpt_login(session_id: str):
+    codex_home = os.path.join(tempfile.gettempdir(), "infra-agent-skills", "codex-homes", str(session_id))
+    os.makedirs(codex_home, exist_ok=True)
+    env = dict(os.environ)
+    env["CODEX_HOME"] = codex_home
+    config = CodexConfig(cwd=codex_home, env=env)
+    codex = AsyncCodex(config=config)
+    await codex.__aenter__()
+    
+    try:
+        login = await codex.login_chatgpt()
+        
+        async def wait_task():
+            try:
+                completed = await login.wait()
+                _LOGIN_STATUS[session_id] = {"status": "success" if completed.success else "failed"}
+            finally:
+                await codex.__aexit__(None, None, None)
+                _LOGIN_CODEX_CONTEXTS.pop(session_id, None)
+                
+        # Keep the task reference alive
+        _LOGIN_CODEX_CONTEXTS[session_id] = {"codex": codex, "task": asyncio.create_task(wait_task())}
+        
+        _LOGIN_STATUS[session_id] = {"status": "pending", "auth_url": login.auth_url}
+        return {"status": "pending", "auth_url": login.auth_url}
+    except Exception as e:
+        await codex.__aexit__(None, None, None)
+        raise e
+
+def check_chatgpt_login(session_id: str):
+    return _LOGIN_STATUS.get(session_id, {"status": "not_started"})
+
 async def run_feature(
     api_key: str,
     prompt: str,
     session_id: str,
-    model: str = "gpt-5.4",
+    model: str = "gpt-5.4-mini",
     feature_id: str = "playground",
     reasoning_effort: str = "",
     auth_method: str = "openai",
@@ -89,6 +134,7 @@ async def run_feature(
     gh_cli_token: str = "",
     gh_cli_hostname: str = "",
     inherit_github_env: bool = True,
+    app_session_key: str = "",
 ) -> AsyncGenerator[dict, None]:
     
     config_dict = {}
@@ -118,6 +164,10 @@ async def run_feature(
     elif auth_method == "ollama":
         env["OPENAI_BASE_URL"] = ollama_base_url.rstrip("/") if ollama_base_url else "http://localhost:11434/v1"
         env["OPENAI_API_KEY"] = api_key or "ollama"
+    elif auth_method == "chatgpt":
+        codex_home = os.path.join(tempfile.gettempdir(), "infra-agent-skills", "codex-homes", str(app_session_key or session_id))
+        os.makedirs(codex_home, exist_ok=True)
+        env["CODEX_HOME"] = codex_home
     else:
         env["OPENAI_API_KEY"] = api_key
         
@@ -143,7 +193,7 @@ async def run_followup(
     api_key: str,
     session_id: str,
     query: str,
-    model: str = "gpt-5.4",
+    model: str = "gpt-5.4-mini",
     reasoning_effort: str = "",
     auth_method: str = "openai",
     bedrock_region: str = "us-east-1",
@@ -152,6 +202,7 @@ async def run_followup(
     gh_cli_token: str = "",
     gh_cli_hostname: str = "",
     inherit_github_env: bool = True,
+    app_session_key: str = "",
 ) -> AsyncGenerator[dict, None]:
 
     session_key = _token_key(api_key + str(session_id))
@@ -166,6 +217,7 @@ async def run_followup(
         default_host = os.environ.get("GH_CLI_HOSTNAME", "github.com") if inherit_github_env else "github.com"
         ghhost = gh_cli_hostname.strip() if gh_cli_hostname.strip() else default_host
         env.update(build_gh_env(gh_cli_token.strip(), ghhost, session_key))
+        
 
     if auth_method == "bedrock":
         if "," in api_key:
@@ -177,6 +229,10 @@ async def run_followup(
     elif auth_method == "ollama":
         env["OPENAI_BASE_URL"] = ollama_base_url.rstrip("/") if ollama_base_url else "http://localhost:11434/v1"
         env["OPENAI_API_KEY"] = api_key or "ollama"
+    elif auth_method == "chatgpt":
+        codex_home = os.path.join(tempfile.gettempdir(), "infra-agent-skills", "codex-homes", str(app_session_key or session_id))
+        os.makedirs(codex_home, exist_ok=True)
+        env["CODEX_HOME"] = codex_home
     else:
         env["OPENAI_API_KEY"] = api_key
         

@@ -206,7 +206,13 @@ def _oauth_redirect_uri(request: Request) -> str:
     explicit = os.environ.get("GITHUB_OAUTH_REDIRECT_URI")
     if explicit:
         return explicit
-    return str(request.base_url).rstrip("/") + "/api/oauth/callback"
+        
+    base_url = str(request.base_url).rstrip("/")
+    base_path = os.environ.get("BASE_PATH", "").strip("/")
+    if base_path:
+        base_url = f"{base_url}/{base_path}"
+        
+    return base_url + "/api/oauth/callback"
 
 @router.get("/api/oauth/config")
 async def oauth_config():
@@ -346,3 +352,54 @@ async def validate_codex_key(request: Request):
     )
     return JSONResponse(result)
 
+@router.post("/api/auth/codex/chatgpt-login")
+async def codex_chatgpt_login(request: Request):
+    from ..dependencies import codex_service
+    if not codex_service:
+        return JSONResponse({"valid": False, "error": "Codex SDK is not installed."}, status_code=501)
+    body = await _get_json_body(request)
+    session_id = body.get("session_id", "").strip()
+    if not session_id:
+        return JSONResponse({"valid": False, "error": "No session_id provided"})
+    
+    try:
+        result = await codex_service.start_chatgpt_login(session_id)
+        return JSONResponse(result)
+    except Exception as e:
+        logger.exception("Failed to start ChatGPT login")
+        return JSONResponse({"valid": False, "error": str(e)})
+
+@router.get("/api/auth/codex/chatgpt-wait/{session_id}")
+async def codex_chatgpt_wait(session_id: str):
+    from ..dependencies import codex_service
+    if not codex_service:
+        return JSONResponse({"valid": False, "error": "Codex SDK is not installed."}, status_code=501)
+    
+    status = codex_service.check_chatgpt_login(session_id)
+    return JSONResponse(status)
+
+@router.post("/api/auth/codex/chatgpt-submit-callback")
+async def codex_chatgpt_submit_callback(request: Request):
+    body = await _get_json_body(request)
+    callback_url = body.get("callback_url", "").strip()
+    if not callback_url.startswith("http://localhost:") and not callback_url.startswith("http://127.0.0.1:"):
+        return JSONResponse({"valid": False, "error": "Invalid callback URL. Must be a localhost URL."})
+    
+    import urllib.request
+    import urllib.error
+    import asyncio
+    
+    def _do_request():
+        try:
+            req = urllib.request.Request(callback_url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=10) as response:
+                return response.read().decode('utf-8')
+        except urllib.error.URLError as e:
+            raise Exception(str(e))
+            
+    try:
+        await asyncio.to_thread(_do_request)
+        return JSONResponse({"status": "success"})
+    except Exception as e:
+        logger.exception("Failed to submit ChatGPT callback")
+        return JSONResponse({"valid": False, "error": str(e)})

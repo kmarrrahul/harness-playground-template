@@ -54,6 +54,9 @@ function authMixin() {
     codexConnected: false,
     codexValidation: null,
     isValidatingCodex: false,
+    codexChatgptPolling: false,
+    codexChatgptAuthUrl: '',
+    codexChatgptCallbackUrl: '',
 
     // Model
     selectedModel: 'claude-sonnet-4.6',
@@ -153,6 +156,8 @@ function authMixin() {
       this.codexApiKey = '';
       this.codexConnected = false;
       this.codexValidation = null;
+      this.codexChatgptPolling = false;
+      this.codexChatgptAuthUrl = '';
     },
 
     async _postEncrypted(endpoint, body, authHeader = null) {
@@ -206,6 +211,7 @@ function authMixin() {
       if (this.aiProvider === 'claude') return this.claudeApiKey;
       if (this.aiProvider === 'codex') {
         if (this.codexAuthMethod === 'ollama') return this.codexApiKey || 'dummy-ollama-token';
+        if (this.codexAuthMethod === 'chatgpt') return 'chatgpt-session';
         return this.codexApiKey;
       }
       return '';
@@ -264,6 +270,9 @@ function authMixin() {
     },
 
     async connectCodex() {
+      if (this.codexAuthMethod === 'chatgpt') {
+        return this.startCodexChatgptLogin();
+      }
       const key = this.codexApiKey.trim();
       if (!key && this.codexAuthMethod !== 'ollama') return;
       this.isValidatingCodex = true;
@@ -294,9 +303,82 @@ function authMixin() {
       this.codexConnected = false;
       this.codexApiKey = '';
       this.codexValidation = null;
+      this.codexChatgptPolling = false;
+      this.codexChatgptAuthUrl = '';
       console.log('[Playground] Disconnected Codex API key.');
       if (this.aiProvider === 'codex') {
         this.availableModels = [];
+      }
+    },
+
+    async startCodexChatgptLogin() {
+      this.isValidatingCodex = true;
+      this.codexValidation = { loading: true };
+      try {
+        const resp = await this._postEncrypted('api/auth/codex/chatgpt-login', { 
+            session_id: window.APP_SESSION_KEY
+        });
+        const data = await resp.json();
+        
+        if (data.status === 'pending' && data.auth_url) {
+          this.codexChatgptAuthUrl = data.auth_url;
+          this.codexChatgptPolling = true;
+          this.pollCodexChatgptLogin();
+        } else {
+          throw new Error("Failed to initialize ChatGPT login");
+        }
+      } catch (err) {
+        this.codexValidation = { loading: false, valid: false, error: err.message };
+        this.isValidatingCodex = false;
+      }
+    },
+
+    async pollCodexChatgptLogin() {
+      if (!this.codexChatgptPolling) return;
+      
+      try {
+        const resp = await fetch(`api/auth/codex/chatgpt-wait/${window.APP_SESSION_KEY}`);
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data.status === 'success') {
+            this.codexChatgptPolling = false;
+            this.isValidatingCodex = false;
+            this.codexValidation = { loading: false, valid: true, user: 'ChatGPT Subscription User' };
+            this.codexConnected = true;
+            this.showSettings = false;
+            console.log('[Playground] Connected via Codex ChatGPT Subscription.');
+            this.loadModels();
+            return;
+          } else if (data.status === 'failed') {
+            throw new Error("Login failed or cancelled");
+          }
+        }
+      } catch (err) {
+        console.error("ChatGPT poll error:", err);
+        if (!this.codexChatgptPolling) return;
+        this.codexChatgptPolling = false;
+        this.isValidatingCodex = false;
+        this.codexValidation = { loading: false, valid: false, error: err.message };
+        return;
+      }
+      
+      // Poll again in 2 seconds
+      setTimeout(() => this.pollCodexChatgptLogin(), 2000);
+    },
+
+    async submitCodexChatgptCallback() {
+      if (!this.codexChatgptCallbackUrl) return;
+      try {
+        const resp = await this._postEncrypted('api/auth/codex/chatgpt-submit-callback', {
+          callback_url: this.codexChatgptCallbackUrl
+        });
+        const data = await resp.json();
+        if (data.valid === false) {
+           alert("Error: " + data.error);
+        }
+        this.codexChatgptCallbackUrl = '';
+      } catch (e) {
+        console.error(e);
       }
     },
 
@@ -445,7 +527,7 @@ function authMixin() {
                 this.selectedModel = this.availableModels[0].id;
               }
             } else if (this.aiProvider === 'codex') {
-              const preferred = 'gpt-5.4';
+              const preferred = 'gpt-5.4-mini';
               if (ids.includes(preferred)) {
                 this.selectedModel = preferred;
               } else {

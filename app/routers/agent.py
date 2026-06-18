@@ -169,6 +169,7 @@ async def run_feature(request: Request):
                     gh_cli_token=gh_cli_token,
                     gh_cli_hostname=body.gh_cli_hostname,
                     inherit_github_env=body.inherit_github_env,
+                    app_session_key=body.app_session_key,
                 ):
                     yield json.dumps(event)
             except Exception as exc:
@@ -278,6 +279,7 @@ async def followup(request: Request):
                     gh_cli_token=gh_cli_token,
                     gh_cli_hostname=body.gh_cli_hostname,
                     inherit_github_env=body.inherit_github_env,
+                    app_session_key=body.app_session_key,
                 ):
                     yield json.dumps(event)
             except Exception as exc:

@@ -94,11 +94,18 @@ async def _pipe_stderr_to_log(process, key: str) -> None:
 def _find_copilot_cli() -> tuple[str, list[str]]:
     """Locate the Copilot CLI entry point.
 
-    On Windows: finds the npm-installed npm-loader.js directly.
-    On Linux/macOS: returns the plain binary path.
+    Prefer the runtime bundled with the SDK to keep its RPC protocol aligned.
+    Fall back to the system or npm-installed CLI when the SDK omits it.
     """
     import re
     import sys
+
+    import copilot
+    sdk_binary_name = "copilot.exe" if sys.platform == "win32" else "copilot"
+    sdk_binary_path = os.path.join(os.path.dirname(copilot.__file__), "bin", sdk_binary_name)
+    if os.path.isfile(sdk_binary_path):
+        logger.info("Using SDK-bundled Copilot CLI: %s", sdk_binary_path)
+        return sdk_binary_path, []
 
     if sys.platform == "win32":
         vscode_dir = os.path.normcase(
@@ -142,12 +149,8 @@ def _find_copilot_cli() -> tuple[str, list[str]]:
         )
 
     # Linux / macOS
-    import copilot
-    sdk_binary_path = os.path.join(os.path.dirname(copilot.__file__), "bin", "copilot")
-    
     system_path = shutil.which("copilot")
     candidates = [
-        sdk_binary_path,
         "/root/.local/bin/copilot",
         os.path.expanduser("~/.local/bin/copilot"),
         "/usr/local/bin/copilot",
